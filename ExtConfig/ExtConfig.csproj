@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>shumutun</Authors>
+    <PackageId>ExtConfig</PackageId>
+    <Copyright />
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/shumutun/extconfig</PackageProjectUrl>
+    <PackageTags>config</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
