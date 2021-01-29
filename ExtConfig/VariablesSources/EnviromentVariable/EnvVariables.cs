@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace ExtConfig.EnviromentVariables
+namespace ExtConfig.VariablesSources.EnviromentVariable
 {
-    public class EnvVariables : IEnvVariables
+    public class EnvVariables : IConfigVariables
     {
         public string GetEnviromentVariable(string name)
         {

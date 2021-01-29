@@ -1,4 +1,4 @@
-﻿using ExtConfig.EnviromentVariables;
+﻿using ExtConfig.VariablesSources;
 using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Linq;
@@ -9,7 +9,8 @@ namespace ExtConfig
     public static class JsonConfigBuilder
     {
         private const string _include = "_include";
-        private static readonly Regex _envVariableRegex = new Regex(@"\$\{([_,A-Z,0-9]+)\}");
+        private const string _variables_source = "_variables_source";
+        private static readonly Regex _envVariableRegex = new Regex(@"\$\{([-_,A-Z,0-9]+)\}");
 
         private static readonly JsonMergeSettings _jsonMergeSettings = new JsonMergeSettings
         {
@@ -21,14 +22,13 @@ namespace ExtConfig
             where T : class
         {
             var filePath = Directory.GetFiles(Directory.GetCurrentDirectory(), filePattern).SingleOrDefault();
-            var json = File.ReadAllText(filePath);
-            return Build<T>(json, new EnvVariables());
+            var obj = JObject.Parse(File.ReadAllText(filePath));
+            return Build<T>(obj, VariablesSource.GetConfigVariables(obj.Value<string>(_variables_source)));
         }
 
-        public static T Build<T>(string json, IEnvVariables enviromentVariables)
+        public static T Build<T>(JObject obj, IConfigVariables enviromentVariables)
             where T : class
         {
-            var obj = JObject.Parse(json);
             IncludeSubConfigs(obj);
             Transform(obj, enviromentVariables);
             return obj.ToObject<T>();
@@ -45,7 +45,7 @@ namespace ExtConfig
             }
         }
 
-        private static void Transform(JObject obj, IEnvVariables enviromentVariables)
+        private static void Transform(JObject obj, IConfigVariables enviromentVariables)
         {
             foreach (var item in obj)
                 if (item.Value?.Type == JTokenType.Object)
@@ -60,7 +60,7 @@ namespace ExtConfig
                     EnvVariableSubstitution(item.Value, enviromentVariables);
         }
 
-        private static void EnvVariableSubstitution(JToken item, IEnvVariables enviromentVariables)
+        private static void EnvVariableSubstitution(JToken item, IConfigVariables enviromentVariables)
         {
             if (item?.Type != JTokenType.String)
                 return;
