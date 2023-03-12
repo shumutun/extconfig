@@ -27,14 +27,14 @@ namespace ExtConfig
             if (filePath == null)
                 throw new ArgumentException("No files found matching the file pattern");
             var obj = JObject.Parse(File.ReadAllText(filePath));
-            return Build<T>(obj, VariablesSource.GetConfigVariables(obj.Value<string>(_variablesSource)));
+            return Build<T>(obj);
         }
 
-        public static T? Build<T>(IConfigurationSection config, IConfigVariables environmentVariables)
+        public static T? Build<T>(IConfigurationSection config)
             where T : class
         {
             var obj = Serialize(config);
-            return Build<T>(obj, environmentVariables);
+            return Build<T>(obj);
         }
 
         private static JObject Serialize(IConfiguration config)
@@ -42,24 +42,27 @@ namespace ExtConfig
             var obj = new JObject();
             foreach (var child in config.GetChildren())
                 obj.Add(child.Key, Serialize(child));
-            if (obj.HasValues || config is not IConfigurationSection section) 
+            if (obj.HasValues || config is not IConfigurationSection section)
                 return obj;
             if (section.Value == null)
                 throw new ArgumentException("The config is empty");
             return JObject.Parse(section.Value);
         }
 
-        public static T? Build<T>(JObject obj, IConfigVariables environmentVariables)
+        private static T? Build<T>(JObject obj)
             where T : class
         {
             IncludeSubConfigs(obj);
-            Transform(obj, environmentVariables);
+            var variablesSource = obj.Value<string>(_variablesSource);
+            if (variablesSource == null)
+                throw new ArgumentNullException(_variablesSource);
+            Transform(obj, VariablesSource.GetConfigVariables(variablesSource));
             return obj.ToObject<T>();
         }
 
         private static void IncludeSubConfigs(JObject obj)
         {
-            if (!obj.TryGetValue(_include, out JToken? include)) 
+            if (!obj.TryGetValue(_include, out JToken? include))
                 return;
             var filepath = include.Value<string>();
             if (filepath == null)
