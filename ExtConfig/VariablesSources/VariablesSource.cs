@@ -1,5 +1,5 @@
-﻿using ExtConfig.VariablesSources.EnviromentVariable;
-using System;
+﻿using System;
+using ExtConfig.VariablesSources.EnvironmentVariable;
 
 namespace ExtConfig.VariablesSources
 {
@@ -7,7 +7,7 @@ namespace ExtConfig.VariablesSources
     {
         private const string _environmentVariables = "enviromentvariables";
         
-        public static IConfigVariables GetConfigVariables(string variablesSource)
+        public static IConfigVariables GetConfigVariables(string? variablesSource)
         {
             if (variablesSource == null || variablesSource.ToLower() == _environmentVariables)
                 return new EnvVariables();

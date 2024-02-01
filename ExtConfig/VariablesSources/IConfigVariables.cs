@@ -2,6 +2,6 @@
 {
     public interface IConfigVariables
     {
-        string GetEnviromentVariable(string name);
+        string GetEnvironmentVariable(string name);
     }
 }
