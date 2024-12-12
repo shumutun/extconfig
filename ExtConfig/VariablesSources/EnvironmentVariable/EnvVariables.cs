@@ -4,9 +4,10 @@ namespace ExtConfig.VariablesSources.EnvironmentVariable
 {
     public class EnvVariables : IConfigVariables
     {
-        public string GetEnvironmentVariable(string name)
+        public bool TryGetEnvironmentVariable(string name, out string? value)
         {
-            return Environment.GetEnvironmentVariable(name) ?? throw new ArgumentException($"Environment variable {name} not found");
+            value = Environment.GetEnvironmentVariable(name);
+            return value is not null;
         }
     }
 }

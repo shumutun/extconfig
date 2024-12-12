@@ -12,9 +12,9 @@ namespace ExtConfig
     {
         private const string _include = "_include";
         private const string _variablesSource = "_variables_source";
-        private static readonly Regex _envVariableRegex = new Regex(@"\$\{([-_,A-Z,0-9]+)\}");
+        private static readonly Regex _envVariableRegex = new(@"\$\{([-_,A-Z,0-9]+)\}");
 
-        private static readonly JsonMergeSettings _jsonMergeSettings = new JsonMergeSettings
+        private static readonly JsonMergeSettings _jsonMergeSettings = new()
         {
             MergeNullValueHandling = MergeNullValueHandling.Ignore,
             MergeArrayHandling = MergeArrayHandling.Union
@@ -50,13 +50,14 @@ namespace ExtConfig
                         foreach (var arrayItem in item.Value)
                             if (arrayItem is JObject jObject)
                                 Transform(jObject, environmentVariables);
-                            else
-                                EnvVariableSubstitution(arrayItem, environmentVariables);
+                            else if (!TrySubstituteEnvVariable(arrayItem, environmentVariables))
+                                arrayItem.Remove();
                         break;
                     }
                     default:
                     {
-                        EnvVariableSubstitution(item.Value, environmentVariables);
+                        if(!TrySubstituteEnvVariable(item.Value, environmentVariables))
+                            item.Value?.Remove();
                         break;
                     }
                 }
@@ -67,24 +68,26 @@ namespace ExtConfig
             if (!obj.TryGetValue(_include, out var include))
                 return;
             var filepath = include.Value<string>();
-            if (filepath == null)
+            if (filepath is null)
                 throw new ArgumentNullException(_include);
             var includeObj = JObject.Parse(File.ReadAllText(filepath));
             IncludeSubConfigs(includeObj);
             obj.Merge(includeObj, _jsonMergeSettings);
         }
 
-        private static void EnvVariableSubstitution(JToken? item, IConfigVariables environmentVariables)
+        private static bool TrySubstituteEnvVariable(JToken? item, IConfigVariables environmentVariables)
         {
             if (item?.Type != JTokenType.String)
-                return;
+                return true;
             var value = item.Value<string>()!;
             value = ProcSubstitutions(value, environmentVariables);
-            item.Replace(JToken.FromObject(value));
+            if (value is not null)
+                item.Replace(JToken.FromObject(value));
+            return value is not null;
         }
 
         #endregion
-        
+
         #region AppSettings
 
         public static T? Build<T>(IConfigurationSection config)
@@ -104,20 +107,19 @@ namespace ExtConfig
         }
 
         #endregion
-        
-        private static string ProcSubstitutions(string value, IConfigVariables environmentVariables)
+
+        private static string? ProcSubstitutions(string value, IConfigVariables environmentVariables)
         {
             if (!_envVariableRegex.IsMatch(value))
                 return value;
             foreach (Match match in _envVariableRegex.Matches(value))
-                if (match != null)
+                if (match is not null)
                 {
-                    var envName = match.Groups[0].Value;
-                    var envValue = environmentVariables.GetEnvironmentVariable(match.Groups[1].Value);
-                    value = value.Replace(envName, envValue);
+                    var env = match.Groups[0].Value;
+                    value = value.Replace(env, environmentVariables.TryGetEnvironmentVariable(match.Groups[1].Value, out var envValue) ? envValue : string.Empty);
                 }
 
-            return value;
+            return string.IsNullOrWhiteSpace(value) ? null : value;
         }
     }
 }
